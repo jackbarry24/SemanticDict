@@ -100,7 +100,6 @@ class SemanticDict():
             self.dict[key] = val
             self._embed_key(key)
         
-
     def __delitem__(self, key: str):
         if self.empty:
             raise KeyError(f"{key}")
