@@ -6,6 +6,14 @@ Say you add the key-value pair `"Hello World I am Jack": 53` to a dictionary. In
 ### Use Case
 This project was designed to assist in caching LLM responses. Everytime a request (query) is made it first checks the prompt against the SemanticDict where key-value pairs corresponsd to prompts-responses. If a similar prompt is found, the response is returned. If not, the request is made to the LLM API and then the new key-value can be added to the SemanticDict. 
 
+```python
+try:
+    response = semantic_dict[prompt]
+except KeyError:
+    response = llm(prompt)
+    semantic_dict[prompt] = response
+```
+
 ### Usage
 ```python
 sd = SemanticDict()
@@ -16,7 +24,7 @@ sd["Hello World - Jack"] #53
 
 ### Threshold
 The threshold argument (`SemanticDict(threshold=0.2)`) is used to set how similar two keys need to be to collide.
-> greater threshold = less collisions
+> greater threshold = keys have to be less similar to match
 
 ### Overwrite
 The overwrite argument (`SemanticDict(overwrite=False)`) is used to change the behavior of how keys-value pairs are added. If overwrite is enabled (default), when a key-value pair is set, if a semantically similar key already exists, its value is overwritten with the new value. If overwrite is set to false, the new key-value pair is just added to the dictionary. 
