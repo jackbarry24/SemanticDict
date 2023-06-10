@@ -46,22 +46,29 @@ class SemanticDict():
             ids=[str(uuid.uuid4())]
         )
 
-    def __getitem__(self, val: str):
+    def __getitem__(self, key: str):
+        #check to see if the embedding space is empty
         if self.empty:
-            raise KeyError(f"{val}")
+            raise KeyError(f"{key}")
         
+        #check to see if there is an exact match in the dict
+        try:
+            return self.dict[key]
+        except KeyError:
+            pass
+
         context = self.collection.query(
-            query_texts=[val],
+            query_texts=[key],
             n_results=1
         )
 
-        key = context.get('documents')[0][0]
+        new_key = context.get('documents')[0][0]
         distance = context.get('distances')[0][0]
 
         if distance > self.threshold:
-            raise KeyError(f"{val}")
+            raise KeyError(f"{key}")
         
-        return self.dict[key]
+        return self.dict[new_key]
         
     def __setitem__(self, key: str, val: str):
         self.dict[key] = val
