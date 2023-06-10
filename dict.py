@@ -6,17 +6,17 @@ import uuid
 
 
 class SemanticDict():
-    def __init__(self, threshold: float=0.1):
+    def __init__(self, threshold: float=0.1, overwrite: bool=False):
         self.threshold = threshold
         self.dict = {}
         self.empty = True
         self.collection_name = "semantic_dict"
         self.client = None
         self.collection = None
-        self.init_chroma()
+        self.overwrite = overwrite
+        self._init_chroma()
         
-
-    def init_chroma(self):
+    def _init_chroma(self):
         try:
             api_key = os.environ['OPENAI_API_KEY']
         except KeyError:
@@ -32,7 +32,15 @@ class SemanticDict():
             persist_directory=".chromadb/"
         ))
 
-        collection = client.get_or_create_collection(
+        #if collection already exists, delete it to remove old keys
+        try:
+            client.delete_collection(
+                name=self.collection_name
+            )
+        except:
+            pass
+            
+        collection = client.create_collection(
             name=self.collection_name,
             embedding_function=ef
         )
@@ -40,11 +48,22 @@ class SemanticDict():
         self.client = client
         self.collection = collection
 
-    def embed(self, val: str):
+    def _embed_key(self, key: str):
         self.collection.add(
-            documents=[val],
+            documents=[key],
             ids=[str(uuid.uuid4())]
         )
+
+    def _get_key(self, key: str):
+        match = self.collection.query(
+            query_texts=[key],
+            n_results=1
+        )
+        key_hit = match.get('documents')[0][0]
+        distance = match.get('distances')[0][0]
+        id = match.get('ids')[0][0]
+
+        return key_hit, distance, id
 
     def __getitem__(self, key: str):
         #check to see if the embedding space is empty
@@ -57,46 +76,34 @@ class SemanticDict():
         except KeyError:
             pass
 
-        context = self.collection.query(
-            query_texts=[key],
-            n_results=1
-        )
-
-        new_key = context.get('documents')[0][0]
-        distance = context.get('distances')[0][0]
+        key_hit, distance, id = self._get_key(key)
 
         if distance > self.threshold:
             raise KeyError(f"{key}")
         
-        return self.dict[new_key]
+        return self.dict[key_hit]
         
-    def __setitem__(self, key: str, val: str):
-        self.dict[key] = val
-        self.embed(key)
-        self.empty = False
+    def __setitem__(self, key: str, val):
+        if self.overwrite:
+            key_hit, distance, id = self._get_key(key)
+            if distance <= self.threshold:
+                self.dict[key_hit] = val
+        else:
+            self.dict[key] = val
+            self._embed_key(key)
+            self.empty = False
 
     def __delitem__(self, key: str):
         if self.empty:
             raise KeyError(f"{key}")
         
-        context = self.collection.query(
-            query_texts=[key],
-            n_results=1
-        )
-
-        id = context.get('ids')[0][0]
-        distance = context.get('distances')[0][0]
+        key_hit, distance, id = self._get_key(key)
 
         if distance > self.threshold:
             raise KeyError(f"{key}")
         
         del self.dict[key]
         self.collection.delete(ids=[id])
-
-    def __del__(self):
-        self.client.delete_collection(
-            name=self.collection_name
-        )
 
     def __len__(self):
         return len(self.dict)
