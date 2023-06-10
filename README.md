@@ -16,15 +16,19 @@ The threshold argument (`sd  = SemanticDict(threshold = 0.2)`) is used to set ho
 > Greater threshold = less collisions
 
 ### Overwrite
-The overwrite argument (`sd  = SemanticDict(overwrite = True)`) is used to change the behavior of how keys-value pairs are added. When overwrite is enabled when a key-value pair is set, if a semantically similar key already exists, its value is overwritten with the new value. Normally, the new key-value pair is just added to the dictionary. 
+The overwrite argument (`sd  = SemanticDict(overwrite = False)`) is used to change the behavior of how keys-value pairs are added. When overwrite is enabled when a key-value pair is set, if a semantically similar key already exists, its value is overwritten with the new value. Normally, the new key-value pair is just added to the dictionary. 
 ```python
 sd = SemanticDict(overwrite=True)
 sd["Hello World I am Jack"] = 53
-sd["This is SemanticDict"] #KeyError
 sd["Hello World - Jack"] #53
 
+# with overwrite 
 sd["Hello World from Jack"] = 20
 sd["Hello World I am Jack"] #20 (not 53 anymore)
+
+# without overwrite
+sd["Hello World from Jack"] = 20
+sd["Hello World I am Jack"] #53
 ```
 
 ### Limitations

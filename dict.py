@@ -84,18 +84,33 @@ class SemanticDict():
         return self.dict[key_hit]
         
     def __setitem__(self, key: str, val):
+        self.empty = False
         if self.overwrite:
+            #see if there is a matching key within threshold
             key_hit, distance, id = self._get_key(key)
             if distance <= self.threshold:
                 self.dict[key_hit] = val
+                return
+            else:
+                self.dict[key] = val
+                self._embed_key(key)
+
+        #if not overwrite, or no matching key, add new key-val pair
         else:
             self.dict[key] = val
             self._embed_key(key)
-            self.empty = False
+        
 
     def __delitem__(self, key: str):
         if self.empty:
             raise KeyError(f"{key}")
+        
+        #check to see if there is an exact match in the dict
+        try:
+            del self.dict[key]
+            return
+        except KeyError:
+            pass
         
         key_hit, distance, id = self._get_key(key)
 
